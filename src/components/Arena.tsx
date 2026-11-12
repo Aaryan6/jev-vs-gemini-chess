@@ -8,6 +8,7 @@ import { PLAYERS, type MoveResponse, type Ply, type PlayerId } from "@/lib/types
 import { PlayerCard } from "./PlayerCard";
 import { EvalChart } from "./EvalChart";
 import { MoveList } from "./MoveList";
+import { WinnerCover } from "./WinnerCover";
 
 const MAX_PLIES = 300;
 const SPEEDS = [
@@ -44,6 +45,7 @@ export function Arena({ models }: { models: Record<PlayerId, string> }) {
   const [speed, setSpeed] = useState(SPEEDS[1].ms);
   const [facts, setFacts] = useState(true);
   const [viewPly, setViewPly] = useState<number | null>(null);
+  const [coverDismissed, setCoverDismissed] = useState(false);
   const gameId = useRef(0);
 
   const game = replay(plies.map((p) => p.san));
@@ -113,6 +115,7 @@ export function Arena({ models }: { models: Record<PlayerId, string> }) {
     setThinking(null);
     setError(null);
     setViewPly(null);
+    setCoverDismissed(false);
     if (swap) setWhitePlayer((w) => otherPlayer(w));
   }
 
@@ -178,7 +181,7 @@ export function Arena({ models }: { models: Record<PlayerId, string> }) {
         <div className="order-2 lg:order-1">{card(whitePlayer, "White")}</div>
 
         <div className="order-1 flex flex-col gap-4 lg:order-2">
-          <div className="overflow-hidden rounded-xl ring-1 ring-white/10">
+          <div className="relative overflow-hidden rounded-xl ring-1 ring-white/10">
             <Chessboard
               options={{
                 id: "arena",
@@ -194,6 +197,15 @@ export function Arena({ models }: { models: Record<PlayerId, string> }) {
                 darkSquareNotationStyle: { color: "#e9e2d0" },
               }}
             />
+            {result && !coverDismissed && (
+              <WinnerCover
+                plies={plies}
+                checkmate={game.isCheckmate()}
+                result={result}
+                onRematch={() => newGame(true)}
+                onReview={() => setCoverDismissed(true)}
+              />
+            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -250,7 +262,7 @@ export function Arena({ models }: { models: Record<PlayerId, string> }) {
             Give both models code-computed move facts (checks, hanging pieces, mate threats)
           </label>
 
-          {result && (
+          {result && coverDismissed && (
             <div className="rounded-xl bg-white/[0.06] px-4 py-3 text-center text-base text-white ring-1 ring-white/10">
               {result} <span className="text-white/50">{Math.ceil(plies.length / 2)} moves.</span>
             </div>
